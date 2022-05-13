@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     // in this case we are to skip all 3 values.
     chunker<optional<long>,3> feeder(
         [&sink](const optional<long> *triplet) {
-            if ( all_of(triplet,triplet+3,[](auto const &op) { return op.has_value(); }) ) {
+            if ( triplet[0].has_value()&&triplet[1].has_value()&&triplet[2].has_value() ) {
                 sink(triplet[0].value(),triplet[1].value(),triplet[2].value());
             } else {
                 fastout(cerr) << "ERROR\tWrong input data. Skip 3 words";
