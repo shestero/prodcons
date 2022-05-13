@@ -24,7 +24,7 @@ public:
     virtual void get(T& e) = 0;
 
     virtual void set_end() { assert(false); }  // not defined
-    virtual bool end() { return false; }       // endless
+    virtual bool end(bool blocking=true) { return false; } // endless
 };
 
 // Implementations:
@@ -79,19 +79,34 @@ public:
      virtual void get(T& e) {
          optional<T> op;
          queue_safe_and_limited<optional<T>,maxSize>::get(op);
-         e = op.value(); // do runtime error if it is END
+         if (op.has_value()) {
+            e = op.value();
+         } else {
+            set_end();
+         }
      }
 
      virtual void set_end() {
          queue_safe_and_limited<optional<T>,maxSize>::put(nullopt); // (optional<T>());
      }
-     virtual bool end() {
-         // ensure the buffer isn't full
+     virtual bool end(bool blocking=true) {
+         {
+             // try to check the current optional<T> if exists, but don't pop it!
+             lock_guard<mutex> lock(queue_safe_and_limited<optional<T>,maxSize>::m);
+             if ( !queue< optional<T> >::empty() ) {
+                 return ! queue< optional<T> >::front().has_value();
+             } if (!blocking) {
+                 return false;
+             }
+         }
+         // if queue is empty AND blocking==true
+         // block until the buffer will contain something
          queue_safe_and_limited<optional<T>,maxSize>::number_of_queueing_portions.acquire();
          queue_safe_and_limited<optional<T>,maxSize>::number_of_queueing_portions.release();
 
          // check the current optional<T>, but don't pop it!
          lock_guard<mutex> lock(queue_safe_and_limited<optional<T>,maxSize>::m);
+         assert( !queue< optional<T> >::empty() );
          return ! queue< optional<T> >::front().has_value();
      }
 };
