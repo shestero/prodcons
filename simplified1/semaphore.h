@@ -1,5 +1,6 @@
-/* binary_semaphore for C++17.
- * Note: binary_semaphore as well as semaphore are build in C++20 and later.
+/*
+ * Binary_semaphore for C++17.
+ * Note: binary_semaphore as well as semaphore are built in C++20 and later.
 */
 
 #pragma once // non-standard but widely supported
