@@ -11,7 +11,6 @@
 
 #include <cassert>
 #include <queue>
-#include <optional>
 #include <mutex>
 #include "semaphore.h" // C++17 simpliest binary semaphore
 
