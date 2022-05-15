@@ -61,8 +61,8 @@ public:
 
 protected:
     buffer_with_block<opT>& buf;
-    const function<opT()>& prod;
-    const function<void(const T&)>& cons;
+    const function<opT()> prod;
+    const function<void(const T&)> cons;
 
 };
 

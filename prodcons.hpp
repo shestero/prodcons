@@ -55,8 +55,8 @@ public:
 
 protected:
     buffer<T>& buf;
-    const function< optional<T>() >& prod;
-    const function<void(const T&) >& cons;
+    const function< optional<T>() > prod;
+    const function<void(const T&) > cons;
 
 };
 

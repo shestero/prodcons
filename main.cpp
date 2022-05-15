@@ -16,8 +16,10 @@ int main(int argc, char *argv[])
     const char* app = "Test task Consumer-Producer";
     cout << "BEGIN\t" << app << endl;
 
-    // Define source of words - from (argc,argv)
+    // Define source of words - from (argc,argv) and source of optional<long>
     words_source source(argc,argv);
+    auto opLong_source = [&source](){ return source().transform(word2long); };
+    // ! optional::transform requires C++23 !
 
     // solver of math. Results are text stream:
     //solver sink(cout);
@@ -40,6 +42,7 @@ int main(int argc, char *argv[])
             }
         }
     );
+    // function<void(const optional<long>&) > feeder =
 
     // Define blocking buffer, the limit capacity is 15.
     queue_with_end<optional<long>,15> buffer;
@@ -48,27 +51,7 @@ int main(int argc, char *argv[])
     // Note the nested optional comes from source.
     // if the top level optional is nullopt then there is no more data in source;
     // if the second level optional is nullopt then there is a converting problem in the corresponding word.
-    prod_cons< optional<long> > pipeline(buffer, [&source](){ return source().transform(word2long); }, feeder);
-    // ! optional::transform is C++23 !
-    // for C++20:
-    /*
-    (function< optional< optional<long> >() >) [&source]() {
-       auto opWord = source();
-       if (!opWord.has_value())
-           return optional< optional<long> >();
-       auto opLong = word2long(opWord.value());
-       if (!opLong.has_value()) {
-           fastout(cerr) << "ERROR\tCannot convert " << opWord.value() << " to long!";
-       }
-       return optional< optional<long> >(opLong);
-    }
-    */
-
-    // Warning if unused extra input
-    if (!feeder.empty()) {
-        cerr << "WARNING\tLast " << feeder.count()
-             << " source word(s) is/are ignored!" << endl;
-    }
+    prod_cons< optional<long> > pipeline(buffer, opLong_source, feeder);
 
     // Farewell
     cout << "END\t" << app << endl;

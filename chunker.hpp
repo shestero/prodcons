@@ -5,13 +5,21 @@
 #ifndef CHUNKER_HPP
 #define CHUNKER_HPP
 
-#include <algorithm>
 #include <functional>
+
+#include "fastout.hpp"      // small ostream wrapper to decrese the mess during the mulithread output
 
 // forwards the data by fixed-size portions
 template<typename T,unsigned int chunkSize> class chunker {
 public:
-    chunker(const std::function<void(const T*) > &receiver): receiver(receiver), pos(0) {
+    chunker(const std::function<void(const T*) > &receiver): receiver(receiver) {}
+    ~chunker() {
+        // Warning about unused data
+        if (pos>0) {
+            fastout(std::cerr) << "WARNING\tLast " << pos
+                               << " object(s) of unused data is/are ignored!";
+        }
+
     }
 
     void operator()(const T& e) {
@@ -22,13 +30,10 @@ public:
         }
     }
 
-    bool empty() const { return pos==0; }
-    size_t count() const { return pos; }
-
 protected:
-    const std::function<void(const T*) > &receiver;
+    const std::function<void(const T*)> receiver;
 
-    size_t pos;
+    size_t pos{0};
     T chunk[chunkSize];
 };
 
