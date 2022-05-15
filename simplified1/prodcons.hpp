@@ -13,8 +13,12 @@
 
 template<typename T> class prod_cons {
 public:
-    prod_cons(buffer<T>& buf, function< optional<T>() > prod, function<void(const T&)> cons, bool autorun=true):
+    //typedef optional<T> opT;
+    using opT=optional<T>;
+
+    prod_cons(buffer_with_block<opT>& buf, function<opT()> prod, function<void(const T&)> cons, bool autorun=true):
         buf(buf), prod(prod), cons(cons) {
+        cerr << "prod_cons" << endl;
         if (autorun)
             run();
     }
@@ -22,11 +26,10 @@ public:
     // produce loop
     void produce() {
         for(;;) {
-            optional<T> e = prod(); // optnull is signal of End-Of-Data
-            if (e.has_value()) {
-                buf.put(e.value());
-            } else {
-                buf.set_end();
+            opT op = prod(); // optnull is signal of End-Of-Data
+            buf.put(op);
+            if (!op.has_value()) {
+                // end of data; exit the producer loop
                 return;
             }
         }
@@ -34,10 +37,14 @@ public:
 
     // consume loop
     void consume() {
-        T e;
-        while (!buf.end()) {
-            buf.get(e);
-            cons(e);
+        opT op;
+        for(;;) {
+            buf.get(op);
+            if (!op.has_value()) {
+                // end of data; exit the consumer loop
+                return;
+            }
+            cons(op.value());
         }
     }
 
@@ -53,9 +60,9 @@ public:
 
 
 protected:
-    buffer<T>& buf;
-    const function< optional<T>() >& prod;
-    const function<void(const T&) >& cons;
+    buffer_with_block<opT>& buf;
+    const function<opT()>& prod;
+    const function<void(const T&)>& cons;
 
 };
 

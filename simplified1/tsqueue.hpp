@@ -12,85 +12,55 @@
 #include <cassert>
 #include <queue>
 #include <optional>
-#include <functional>
 #include <mutex>
-#include <semaphore>
+#include "semaphore.h" // C++17 simpliest binary semaphore
 
-
-// Interface for FIFO buffer - queue of T
-template<typename T> class buffer {
-public:
-    virtual void put(const T&) = 0;
-    virtual void get(T& e) = 0;
-
-    virtual void set_end() { assert(false); }  // not defined
-    virtual bool end() { return false; }       // endless
-};
-
-// Implementations:
 
 using namespace std;
 
 // Thread-safe FIFO buffer-queue
-template<typename T> class queue_thread_safe : public buffer<T> {
-    template<typename> friend class queue_with_end;
-
+template<typename T> class queue_thread_safe {
 public:
-    queue_thread_safe() {
-        m_overdry.lock();   // at the begining q is empty
-    }
-
-    virtual void put(const T& e) {
-        lock_guard<mutex> lock(m_safe);
+    void put(const T& e) {
+        lock_guard<mutex> lock(m);
         q.push(e);
-        m_overdry.unlock(); // there is something in q now
     }
 
-    virtual void get(T& e) {
-        m_overdry.lock();   // ensure if there is something in q
-        lock_guard<mutex> lock(m_safe);
+    // Warning: this get() don't chek bounds; it produces run-time error if is called on empty queue!
+    // return true if the queue still not empty after the getting.
+    bool get(T& e) {
+        lock_guard<mutex> lock(m);
+        assert(!q.empty());
         e = q.front();
         q.pop();
-        if (!q.empty())     // if there is notging in q then to prevent reading keep m_overdry locked
-            m_overdry.unlock();
+        return !q.empty();
     }
 
 protected:
     queue<T> q;
-    mutex m_safe;           // made the access to q thread-safe
-    mutex m_overdry;        // blocked when queue is empty;
+    mutex m; // made the access to q thread-safe
 };
 
 
-// Queue that support end-of-data feature ( set_end() and bool end() )
-// queue_with_end<T> wraps queue_with_end< optional<T> >
-template <typename T> class queue_with_end : public buffer<T> {
+// Queue that block getting while it is empty
+template <typename T> class buffer_with_block  {
 public:
-     virtual void put(const T& e) {
-         q.put(optional(e));
+     void put(const T& e) {
+        q.put(e);
+        s.unlock(); // there is something in q now
      }
-     virtual void get(T& e) {
-         optional<T> op;
-         q.get(op);
-         if (op.has_value()) { // do nothinh if it is End-Of-Data
-            e = op.value();
-         }
-     }
-
-     virtual void set_end() {
-         q.put(nullopt); // (optional<T>());
-     }
-     virtual bool end() {
-         // check the current optional<T>, but don't pop it!
-         lock_guard<mutex> lock(q.m_safe);
-         if (q.q.empty())
-            return false;
-         else
-            return ! q.q.front().has_value();
+     void get(T& e) {
+        s.lock();   // ensure if there is something in q
+        if (q.get(e))
+        {
+            // still have more data in queue
+            s.unlock();
+        }
      }
 
 protected:
-     queue_thread_safe< optional<T> > q;
+     queue_thread_safe< T > q;
+     binary_semaphore s{false}; // to block cinsuming if the queue q is empty; initially locked
 };
 
 #endif // TSQUEUE_HPP
