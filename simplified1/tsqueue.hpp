@@ -40,8 +40,8 @@ public:
 
 protected:
     queue<T> q;
-    mutex m; // made the access to q thread-safe
-    binary_semaphore s{false}; // to block cinsuming if the queue q is empty; initially locked
+    mutex m; // to made the access to q thread-safe
+    binary_semaphore s{false}; // to block a consumer if the queue q is empty; initially locked
 };
 
 
