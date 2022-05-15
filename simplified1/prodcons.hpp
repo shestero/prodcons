@@ -25,8 +25,9 @@ public:
 
     // produce loop
     void produce() {
+        opT op;
         for(;;) {
-            opT op = prod(); // optnull is signal of End-Of-Data
+            op = prod(); // optnull is signal of End-Of-Data
             buf.put(op);
             if (!op.has_value()) {
                 // end of data; exit the producer loop
