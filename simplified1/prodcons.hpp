@@ -16,9 +16,9 @@ public:
     //typedef optional<T> opT;
     using opT=optional<T>;
 
-    prod_cons(buffer_with_block<opT>& buf, function<opT()> prod, function<void(const T&)> cons, bool autorun=true):
-        buf(buf), prod(prod), cons(cons) {
-        cerr << "prod_cons" << endl;
+    prod_cons(safe_buffer<opT>& buf, const function<opT()>& prod, const function<void(const T&)>& cons, bool autorun=true):
+        buf(buf), prod(prod), cons(cons)
+    {
         if (autorun)
             run();
     }
@@ -60,7 +60,7 @@ public:
 
 
 protected:
-    buffer_with_block<opT>& buf;
+    safe_buffer<opT>& buf;
     const function<opT()> prod;
     const function<void(const T&)> cons;
 

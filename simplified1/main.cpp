@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     // Note the nested optional comes from source.
     // if the top level optional is nullopt then it means END of source data
     // if the second level optional is nullopt then there is a converting problem in the corresponding word.
-    buffer_with_block< optional< optional<long> > > buffer;
+    safe_buffer< optional< optional<long> > > buffer;
 
     // worker pipe
     prod_cons< optional<long> > pipeline( buffer, opLong_source, feeder );

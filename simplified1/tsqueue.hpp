@@ -15,52 +15,36 @@
 #include <mutex>
 #include "semaphore.h" // C++17 simpliest binary semaphore
 
-
 using namespace std;
 
 // Thread-safe FIFO buffer-queue
-template<typename T> class queue_thread_safe {
+template<typename T> class safe_buffer {
 public:
     void put(const T& e) {
         lock_guard<mutex> lock(m);
         q.push(e);
+        s.unlock();
     }
 
-    // Warning: this get() don't chek bounds; it produces run-time error if is called on empty queue!
-    // return true if the queue still not empty after the getting.
-    bool get(T& e) {
+    void get(T& e) {
+        s.lock();   // ensure if there is something in q
         lock_guard<mutex> lock(m);
         assert(!q.empty());
         e = q.front();
         q.pop();
-        return !q.empty();
+        if (!q.empty())
+        {
+            // still have more data in queue
+            s.unlock();
+        }
     }
 
 protected:
     queue<T> q;
     mutex m; // made the access to q thread-safe
+    binary_semaphore s{false}; // to block cinsuming if the queue q is empty; initially locked
 };
 
 
-// Queue that block getting while it is empty
-template <typename T> class buffer_with_block  {
-public:
-     void put(const T& e) {
-        q.put(e);
-        s.unlock(); // there is something in q now
-     }
-     void get(T& e) {
-        s.lock();   // ensure if there is something in q
-        if (q.get(e))
-        {
-            // still have more data in queue
-            s.unlock();
-        }
-     }
-
-protected:
-     queue_thread_safe< T > q;
-     binary_semaphore s{false}; // to block cinsuming if the queue q is empty; initially locked
-};
 
 #endif // TSQUEUE_HPP
